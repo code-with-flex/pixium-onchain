@@ -1,7 +1,8 @@
 #![cfg(test)]
+extern crate std;
 
 use super::*;
-use soroban_sdk::testutils::{Address as _, Ledger};
+use soroban_sdk::testutils::{Address as _, Events as _, Ledger};
 
 fn set_timestamp(env: &Env, ts: u64) {
     env.ledger().with_mut(|li| li.timestamp = ts);
@@ -25,6 +26,20 @@ fn place_pixel_then_get_pixel_round_trips() {
     let player = Address::generate(&env);
 
     client.place_pixel(&player, &5, &10, &3);
+
+    // Check events right after the call that emits them — a subsequent
+    // contract invocation (e.g. get_pixel below) resets the recorded
+    // event buffer to that call's events.
+    //
+    // NOTE: this only checks that place_pixel published exactly one
+    // event. soroban-sdk 23.5.3's `Events::all()` returns the raw
+    // `(Address, Vec<Val>, Val)` tuple form rather than XDR, and its
+    // `Event` trait doesn't expose `to_xdr` (that's a newer-SDK API) or
+    // a documented way to fetch a `#[contractevent]` struct's exact
+    // topics/data for comparison. A follow-up should assert the event's
+    // contents precisely once we confirm the right approach for this
+    // SDK version.
+    assert_eq!(env.events().all().len(), 1);
 
     let pixel = client.get_pixel(&5, &10).unwrap();
     assert_eq!(pixel.color, 3);

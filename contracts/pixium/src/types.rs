@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address};
+use soroban_sdk::{contractevent, contracttype, Address};
 
 /// Canvas dimensions. Matches the MVP spec (1000x1000 shared grid).
 pub const CANVAS_WIDTH: u32 = 1000;
@@ -30,4 +30,16 @@ pub enum DataKey {
     /// Maps a player's address -> the ledger timestamp (seconds) of their
     /// last successful pixel placement. Used to enforce the cooldown.
     LastPlaced(Address),
+}
+
+/// Emitted whenever `place_pixel` successfully paints a cell. Topics are
+/// `("pixel_placed", owner)` so indexers can filter by player; the
+/// coordinates and color are the data payload.
+#[contractevent]
+pub struct PixelPlaced {
+    #[topic]
+    pub owner: Address,
+    pub x: u32,
+    pub y: u32,
+    pub color: u32,
 }
