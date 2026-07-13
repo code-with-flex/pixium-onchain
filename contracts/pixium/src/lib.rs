@@ -2,7 +2,9 @@
 use soroban_sdk::{contract, contractimpl, Address, Env};
 
 mod types;
-use types::{DataKey, Pixel, CANVAS_HEIGHT, CANVAS_WIDTH, COOLDOWN_SECONDS, PALETTE_SIZE};
+use types::{
+    DataKey, Pixel, PixelPlaced, CANVAS_HEIGHT, CANVAS_WIDTH, COOLDOWN_SECONDS, PALETTE_SIZE,
+};
 
 #[contract]
 pub struct Contract;
@@ -29,6 +31,7 @@ impl Contract {
 
         Self::write_pixel(&env, x, y, color, player.clone());
         Self::record_placement(&env, &player);
+        Self::emit_pixel_placed(&env, x, y, color, player);
     }
 }
 
@@ -72,6 +75,13 @@ impl Contract {
         env.storage()
             .persistent()
             .set(&key, &Pixel { color, owner });
+    }
+
+    /// Emits a `PixelPlaced` event so off-chain consumers (the indexer)
+    /// can react to new pixel placements without polling contract
+    /// storage directly.
+    fn emit_pixel_placed(env: &Env, x: u32, y: u32, color: u32, owner: Address) {
+        PixelPlaced { owner, x, y, color }.publish(env);
     }
 }
 
